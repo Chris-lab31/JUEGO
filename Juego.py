@@ -11,6 +11,7 @@ WIDTH, HEIGHT = 700, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("¡Grug escapa de las piedras!")
 
+# Cargar imágenes
 fondo = pygame.image.load("cueva.jpg")
 nave_img = pygame.image.load("grug.png")
 asteroide_img = pygame.image.load("piedra.png")
@@ -18,6 +19,7 @@ powerup_bomba_img = pygame.image.load("powerup_bomba.png")
 powerup_velocidad_img = pygame.image.load("powerup_velocidad.png")
 banana_img = pygame.image.load("banana.png")
 
+# Escalar imágenes
 fondo = pygame.transform.scale(fondo, (WIDTH, HEIGHT))
 nave_img = pygame.transform.scale(nave_img, (60, 80))
 asteroide_img = pygame.transform.scale(asteroide_img, (50, 50))
@@ -45,7 +47,7 @@ record_maximo = cargar_record()
 class Nave:
     def __init__(self):
         self.image = nave_img
-        self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT - 85))  # Ahora Grug toca el suelo
+        self.rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT - 85))
         self.base_speed = 7
         self.speed_bonus = 0
         self.speed_boost_timer = 0
@@ -124,12 +126,16 @@ class Banana:
         self.rect.y += self.speed
 
     def dibujar(self, pantalla):
-        screen.blit(self.image, self.rect)
+        pantalla.blit(self.image, self.rect)
 
 def menu_inicio(font):
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load("menu.mp3")
+    pygame.mixer.music.play(-1)
+
     while True:
         screen.blit(fondo, (0, 0))
-        titulo = font.render("\u00a1Grug escapa de las piedras!", True, (255, 255, 255))
+        titulo = font.render("¡Grug escapa de las piedras!", True, (255, 255, 255))
         iniciar_txt = font.render("Presiona ENTER para iniciar", True, (255, 255, 255))
         salir_txt = font.render("Presiona ESC para salir", True, (255, 255, 255))
         screen.blit(titulo, (WIDTH // 2 - titulo.get_width() // 2, HEIGHT // 2 - 100))
@@ -143,10 +149,35 @@ def menu_inicio(font):
                 sys.exit()
         keys = pygame.key.get_pressed()
         if keys[pygame.K_RETURN]:
+            pygame.mixer.music.stop()
             return
         if keys[pygame.K_ESCAPE]:
             pygame.quit()
             sys.exit()
+
+def pantalla_victoria(font_grande, font_peque):
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load("ganar.mp3")
+    pygame.mixer.music.play(-1)
+    duracion_victoria = 5000
+    tiempo_inicio = pygame.time.get_ticks()
+
+    while pygame.time.get_ticks() - tiempo_inicio < duracion_victoria:
+        screen.blit(fondo, (0, 0))
+        texto_victoria = font_grande.render("¡GANASTE!", True, (0, 255, 0))
+        texto_info = font_peque.render("Recolectaste 5 bananas", True, (255, 255, 255))
+        texto_info2 = font_peque.render("Gracias por jugar", True, (255, 255, 255))
+        screen.blit(texto_victoria, (WIDTH // 2 - texto_victoria.get_width() // 2, HEIGHT // 2 - 60))
+        screen.blit(texto_info, (WIDTH // 2 - texto_info.get_width() // 2, HEIGHT // 2))
+        screen.blit(texto_info2, (WIDTH // 2 - texto_info2.get_width() // 2, HEIGHT // 2 + 40))
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        pygame.time.Clock().tick(60)
 
 def game_loop():
     global record_maximo
@@ -163,7 +194,8 @@ def game_loop():
     spawn_interval = 30
     powerup_timer = 0
     banana_timer = 0
-    font = pygame.font.SysFont(None, 40)
+    font = pygame.font.SysFont(None, 25)
+    font_grande = pygame.font.SysFont(None, 40)
     game_over = False
 
     start_time = time.time()
@@ -197,7 +229,7 @@ def game_loop():
                 nave.speed_boost_timer -= 1
 
             if inmune:
-                inmune_timer += 1/60
+                inmune_timer += 1 / 60
                 if inmune_timer >= inmune_duration:
                     inmune = False
                     inmune_timer = 0
@@ -226,7 +258,7 @@ def game_loop():
                 powerup_timer = 0
 
             banana_timer += 1
-            if banana_timer >= 1200:
+            if banana_timer >= 300:
                 bananas.append(Banana())
                 banana_timer = 0
 
@@ -271,10 +303,7 @@ def game_loop():
                     inmune_timer = 0
 
             if banana_recogidas >= 5:
-                texto_victoria = font.render("\u00a1GANASTE! Recolectaste 5 bananas", True, (0, 255, 0))
-                screen.blit(texto_victoria, (WIDTH // 2 - texto_victoria.get_width() // 2, HEIGHT // 2))
-                pygame.display.flip()
-                pygame.time.wait(5000)
+                pantalla_victoria(font_grande, font)
                 return
 
             for a in animaciones[:]:
@@ -290,14 +319,14 @@ def game_loop():
             inmunidad_txt = font.render(f"Inmune: {'S' + chr(205) if inmune else 'NO'}", True, (0, 255, 255))
             bananas_txt = font.render(f"Bananas: {banana_recogidas}/5", True, (255, 255, 0))
             screen.blit(tiempo_txt, (10, 10))
-            screen.blit(record_txt, (10, 50))
-            screen.blit(inmunidad_txt, (10, 90))
-            screen.blit(bananas_txt, (10, 130))
+            screen.blit(record_txt, (10, 40))
+            screen.blit(inmunidad_txt, (10, 70))
+            screen.blit(bananas_txt, (10, 100))
 
         else:
-            texto1 = font.render("\u00a1GAME OVER! Presiona R para reiniciar", True, (255, 0, 0))
-            texto2 = font.render(f"Aguantaste: {tiempo_final} segundos", True, (255, 255, 255))
-            texto3 = font.render(f"Record: {record_maximo} segundos", True, (255, 215, 0))
+            texto1 = font_grande.render("¡GAME OVER! Presiona R para reiniciar", True, (255, 0, 0))
+            texto2 = font_grande.render(f"Aguantaste: {tiempo_final} segundos", True, (255, 255, 255))
+            texto3 = font_grande.render(f"Record: {record_maximo} segundos", True, (255, 215, 0))
             screen.blit(texto1, (WIDTH // 2 - texto1.get_width() // 2, HEIGHT // 2 - 60))
             screen.blit(texto2, (WIDTH // 2 - texto2.get_width() // 2, HEIGHT // 2 - 10))
             screen.blit(texto3, (WIDTH // 2 - texto3.get_width() // 2, HEIGHT // 2 + 40))
